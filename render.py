@@ -1,65 +1,38 @@
 """
 In/Tension Continuum Renderer
 
-Generates HTML/SVG visualization matching TUG's wireframe design.
+Generates HTML/SVG visualization from the domain model.
 """
 
-from dataclasses import dataclass
-from typing import List, Optional
+from models import (
+    Project, Tension, Aim, Participant, Vote, 
+    VotingRound, Continuum, ConsentPoint
+)
+from typing import List
 
 
-@dataclass
-class Aim:
-    label: str
-    description: Optional[str] = None
-
-
-@dataclass 
-class Tension:
-    name: str
-    left_aim: Aim
-    right_aim: Aim
-    baseline_votes: List[int]
-    comparison_votes: Optional[List[int]] = None
-    
-    def baseline_average(self) -> Optional[float]:
-        if not self.baseline_votes:
-            return None
-        return sum(self.baseline_votes) / len(self.baseline_votes)
-    
-    def comparison_average(self) -> Optional[float]:
-        if not self.comparison_votes:
-            return None
-        return sum(self.comparison_votes) / len(self.comparison_votes)
-    
-    def movement(self) -> Optional[float]:
-        b, c = self.baseline_average(), self.comparison_average()
-        if b is None or c is None:
-            return None
-        return c - b
-
-
-def render_continuum(tension: Tension, 
+def render_continuum(continuum: Continuum, 
                      width: int = 900, 
                      height: int = 280,
                      show_comparison: bool = False) -> str:
     """
-    Render a single continuum as SVG.
+    Render a Continuum as SVG.
     
-    Design based on TUG wireframes:
-    - Clean white background with subtle border
-    - Discrete cells for each position (0-10)
+    Visual design:
+    - Solid horizontal line with triangle fulcrum at center
     - Vote rectangles stack above (baseline) and below (comparison)
-    - Average marker sits on the bar
-    - Bold aim labels at ends
+    - Consent point shown as circle on the line
+    - Aim labels at ends, stacked if long
     """
+    
+    tension = continuum.tension
+    positions = continuum.scale_positions
     
     # Layout
     margin_x = 140
     bar_width = width - (margin_x * 2)
     bar_height = 32
     bar_y = height // 2
-    positions = 11  # 0-10 scale
     cell_width = bar_width / positions
     
     # Vote display
@@ -67,11 +40,10 @@ def render_continuum(tension: Tension,
     vote_height = 18
     vote_gap = 3
     
-    # Colors (matching wireframe aesthetic)
+    # Colors
     colors = {
         'background': '#ffffff',
         'border': '#e0e0e0',
-        'bar_fill': '#ffffff',
         'bar_stroke': '#999999',
         'baseline_vote': '#a8d4f0',  # Light blue
         'baseline_avg': '#666666',
@@ -79,19 +51,23 @@ def render_continuum(tension: Tension,
         'comparison_avg': '#1a1a1a',
         'text': '#333333',
         'text_light': '#666666',
+        'fulcrum': '#333333',
     }
     
     # Count votes at each position
+    baseline_votes = tension.get_votes(VotingRound.BASELINE)
     baseline_counts = [0] * positions
-    for v in tension.baseline_votes:
-        if 0 <= v < positions:
-            baseline_counts[v] += 1
+    for v in baseline_votes:
+        if continuum.scale_min <= v.value <= continuum.scale_max:
+            baseline_counts[v.value - continuum.scale_min] += 1
     
+    comparison_votes = tension.get_votes(VotingRound.COMPARISON)
     comparison_counts = [0] * positions
-    if tension.comparison_votes:
-        for v in tension.comparison_votes:
-            if 0 <= v < positions:
-                comparison_counts[v] += 1
+    for v in comparison_votes:
+        if continuum.scale_min <= v.value <= continuum.scale_max:
+            comparison_counts[v.value - continuum.scale_min] += 1
+    
+    line_y = bar_y + bar_height // 2
     
     # Start SVG
     svg = f'''<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">
@@ -104,7 +80,7 @@ def render_continuum(tension: Tension,
     
     # Legend
     legend_y = 40
-    if show_comparison and tension.comparison_votes:
+    if show_comparison and comparison_votes:
         svg += f'''
   <!-- Legend -->
   <rect x="{width - 200}" y="{legend_y - 12}" width="16" height="12" fill="{colors['baseline_vote']}"/>
@@ -119,60 +95,57 @@ def render_continuum(tension: Tension,
   <text x="{width - 140}" y="{legend_y}" font-family="system-ui" font-size="12" fill="{colors['text_light']}">Baseline votes</text>
 '''
     
-    # Continuum bar (solid line)
-    line_y = bar_y + bar_height // 2
+    # Continuum line and fulcrum
     svg += f'''
   <!-- Continuum line -->
   <line x1="{margin_x}" y1="{line_y}" x2="{margin_x + bar_width}" y2="{line_y}" stroke="{colors['bar_stroke']}" stroke-width="3"/>
   
   <!-- Center fulcrum triangle -->
-  <polygon points="{width//2},{line_y + 8} {width//2 - 20},{line_y + 40} {width//2 + 20},{line_y + 40}" fill="{colors['text']}" />
+  <polygon points="{width//2},{line_y + 8} {width//2 - 20},{line_y + 40} {width//2 + 20},{line_y + 40}" fill="{colors['fulcrum']}" />
 '''
     
-    # Baseline vote rectangles (above bar)
+    # Baseline vote rectangles (above line)
     for pos, count in enumerate(baseline_counts):
         if count == 0:
             continue
         cell_center = margin_x + (pos * cell_width) + (cell_width / 2)
         x = cell_center - (vote_width / 2)
         for i in range(count):
-            y = bar_y - (vote_height + vote_gap) * (i + 1)
+            y = line_y - 8 - (vote_height + vote_gap) * (i + 1)
             svg += f'  <rect x="{x:.1f}" y="{y:.1f}" width="{vote_width:.1f}" height="{vote_height}" fill="{colors["baseline_vote"]}" rx="2"/>\n'
     
-    # Comparison vote rectangles (below bar)
-    if show_comparison and tension.comparison_votes:
+    # Comparison vote rectangles (below line)
+    if show_comparison and comparison_votes:
         for pos, count in enumerate(comparison_counts):
             if count == 0:
                 continue
             cell_center = margin_x + (pos * cell_width) + (cell_width / 2)
             x = cell_center - (vote_width / 2)
             for i in range(count):
-                y = bar_y + bar_height + vote_gap + (vote_height + vote_gap) * i
+                y = line_y + 8 + vote_gap + (vote_height + vote_gap) * i
                 svg += f'  <rect x="{x:.1f}" y="{y:.1f}" width="{vote_width:.1f}" height="{vote_height}" fill="{colors["comparison_vote"]}" rx="2"/>\n'
     
-    # Baseline average marker (circle on line)
-    line_y = bar_y + bar_height // 2
-    baseline_avg = tension.baseline_average()
-    if baseline_avg is not None:
-        avg_x = margin_x + (baseline_avg * cell_width) + (cell_width / 2)
+    # Baseline consent point (circle on line)
+    baseline_cp = tension.get_consent_point(VotingRound.BASELINE)
+    if baseline_cp:
+        cp_x = margin_x + (baseline_cp.value * cell_width) + (cell_width / 2)
         svg += f'''
-  <!-- Baseline average -->
-  <circle cx="{avg_x:.1f}" cy="{line_y}" r="12" fill="{colors['baseline_avg']}" stroke="#fff" stroke-width="2"/>
+  <!-- Baseline consent point -->
+  <circle cx="{cp_x:.1f}" cy="{line_y}" r="12" fill="{colors['baseline_avg']}" stroke="#fff" stroke-width="2"/>
 '''
     
-    # Comparison average marker (circle, different style)
-    if show_comparison and tension.comparison_votes:
-        comp_avg = tension.comparison_average()
-        if comp_avg is not None:
-            avg_x = margin_x + (comp_avg * cell_width) + (cell_width / 2)
+    # Comparison consent point
+    if show_comparison and comparison_votes:
+        comparison_cp = tension.get_consent_point(VotingRound.COMPARISON)
+        if comparison_cp:
+            cp_x = margin_x + (comparison_cp.value * cell_width) + (cell_width / 2)
             svg += f'''
-  <!-- Comparison average -->
-  <circle cx="{avg_x:.1f}" cy="{line_y}" r="12" fill="{colors['comparison_avg']}" stroke="#fff" stroke-width="2"/>
+  <!-- Comparison consent point -->
+  <circle cx="{cp_x:.1f}" cy="{line_y}" r="12" fill="{colors['comparison_avg']}" stroke="#fff" stroke-width="2"/>
 '''
     
     # Aim labels (stacked if long)
     def wrap_label(label, max_chars=18):
-        """Split label into lines if too long."""
         words = label.split()
         lines = []
         current = ""
@@ -187,9 +160,10 @@ def render_continuum(tension: Tension,
             lines.append(current)
         return lines if lines else [label]
     
+    line_height = 18
+    
     # Left aim
     left_lines = wrap_label(tension.left_aim.label)
-    line_height = 18
     start_y = bar_y + bar_height/2 - (len(left_lines) - 1) * line_height / 2
     svg += '  <!-- Left aim label -->\n'
     for i, line in enumerate(left_lines):
@@ -204,30 +178,25 @@ def render_continuum(tension: Tension,
         y = start_y + i * line_height
         svg += f'  <text x="{margin_x + bar_width + 20}" y="{y}" text-anchor="start" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="600" fill="{colors["text"]}">{line}</text>\n'
 
-    
-    # Aim descriptions (if provided)
-    if tension.left_aim.description:
-        svg += f'  <text x="{margin_x - 20}" y="{bar_y + bar_height/2 + 24}" text-anchor="end" font-family="system-ui" font-size="11" fill="{colors["text_light"]}">{tension.left_aim.description}</text>\n'
-    if tension.right_aim.description:
-        svg += f'  <text x="{margin_x + bar_width + 20}" y="{bar_y + bar_height/2 + 24}" text-anchor="start" font-family="system-ui" font-size="11" fill="{colors["text_light"]}">{tension.right_aim.description}</text>\n'
-    
     svg += '</svg>'
     return svg
 
 
-def render_page(tensions: List[Tension], title: str = "In/Tension Session Results") -> str:
-    """Render full HTML page with all continuums."""
+def render_project(project: Project, show_comparison: bool = False) -> str:
+    """Render full HTML page for a project's continuum set."""
+    
+    participant_count = len(project.participants)
+    tension_count = len(project.get_visible_tensions())
+    round_text = "Baseline + Comparison" if show_comparison else "Baseline round"
     
     html = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{title}</title>
+  <title>{project.name}</title>
   <style>
-    * {{
-      box-sizing: border-box;
-    }}
+    * {{ box-sizing: border-box; }}
     body {{
       font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
       max-width: 960px;
@@ -236,22 +205,10 @@ def render_page(tensions: List[Tension], title: str = "In/Tension Session Result
       background: #f0f0f0;
       color: #333;
     }}
-    header {{
-      text-align: center;
-      margin-bottom: 48px;
-    }}
-    h1 {{
-      font-size: 28px;
-      font-weight: 600;
-      margin: 0 0 8px 0;
-    }}
-    .subtitle {{
-      color: #666;
-      font-size: 14px;
-    }}
-    .continuum {{
-      margin: 24px 0;
-    }}
+    header {{ text-align: center; margin-bottom: 48px; }}
+    h1 {{ font-size: 28px; font-weight: 600; margin: 0 0 8px 0; }}
+    .subtitle {{ color: #666; font-size: 14px; }}
+    .continuum {{ margin: 24px 0; }}
     .continuum svg {{
       display: block;
       box-shadow: 0 1px 3px rgba(0,0,0,0.08);
@@ -264,35 +221,21 @@ def render_page(tensions: List[Tension], title: str = "In/Tension Session Result
       border-radius: 4px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     }}
-    .stats h2 {{
-      font-size: 16px;
-      margin: 0 0 16px 0;
-    }}
-    .stats table {{
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 14px;
-    }}
-    .stats th, .stats td {{
-      text-align: left;
-      padding: 8px 12px;
-      border-bottom: 1px solid #eee;
-    }}
-    .stats th {{
-      font-weight: 500;
-      color: #666;
-    }}
+    .stats h2 {{ font-size: 16px; margin: 0 0 16px 0; }}
+    .stats table {{ width: 100%; border-collapse: collapse; font-size: 14px; }}
+    .stats th, .stats td {{ text-align: left; padding: 8px 12px; border-bottom: 1px solid #eee; }}
+    .stats th {{ font-weight: 500; color: #666; }}
   </style>
 </head>
 <body>
   <header>
-    <h1>{title}</h1>
-    <p class="subtitle">6 participants · 7 tensions · Baseline round</p>
+    <h1>{project.name}</h1>
+    <p class="subtitle">{participant_count} participants · {tension_count} tensions · {round_text}</p>
   </header>
 '''
     
-    for t in tensions:
-        svg = render_continuum(t)
+    for continuum in project.continuum_set:
+        svg = render_continuum(continuum, show_comparison=show_comparison)
         html += f'  <div class="continuum">\n    {svg}\n  </div>\n'
     
     # Summary stats
@@ -302,21 +245,22 @@ def render_page(tensions: List[Tension], title: str = "In/Tension Session Result
     <table>
       <tr>
         <th>Tension</th>
-        <th>Average</th>
+        <th>Consent Point</th>
         <th>Leans Toward</th>
       </tr>
 '''
     
-    for t in tensions:
-        avg = t.baseline_average()
-        if avg is not None:
-            if avg < 4:
-                leans = t.left_aim.label
-            elif avg > 6:
-                leans = t.right_aim.label
+    for tension in project.get_visible_tensions():
+        cp = tension.get_consent_point(VotingRound.BASELINE)
+        if cp:
+            if cp.value < 4:
+                leans = tension.left_aim.label
+            elif cp.value > 6:
+                leans = tension.right_aim.label
             else:
                 leans = "Center"
-            html += f'      <tr><td>{t.name}</td><td>{avg:.1f}</td><td>{leans}</td></tr>\n'
+            manual = " (adjusted)" if cp.is_manual else ""
+            html += f'      <tr><td>{tension.name}</td><td>{cp.value:.1f}{manual}</td><td>{leans}</td></tr>\n'
     
     html += '''    </table>
   </div>
@@ -326,57 +270,85 @@ def render_page(tensions: List[Tension], title: str = "In/Tension Session Result
     return html
 
 
-# Real session data (March 2025)
-TENSIONS = [
-    Tension(
-        "Quality vs Quantity of Outputs",
-        Aim("Quality", "Focus on excellence"),
-        Aim("Quantity", "Focus on volume"),
-        baseline_votes=[0, 1, 1, 4, 3, 5]
-    ),
-    Tension(
-        "Data Tracking vs Privacy",
-        Aim("Comprehensive Tracking"),
-        Aim("Privacy by Design"),
-        baseline_votes=[5, 9, 5, 9, 2, 5]
-    ),
-    Tension(
-        "Oversight vs Personalization",
-        Aim("Centralized Oversight"),
-        Aim("Personalization"),
-        baseline_votes=[1, 2, 8, 3, 5, 6]
-    ),
-    Tension(
-        "Outputs vs Experiences",
-        Aim("Good AI Outputs"),
-        Aim("Good Workflow Experiences"),
-        baseline_votes=[1, 3, 9, 3, 3, 4]
-    ),
-    Tension(
-        "Back Office vs Front Office",
-        Aim("Back Office"),
-        Aim("Front Office"),
-        baseline_votes=[0, 0, 2, 0, 1, 1]
-    ),
-    Tension(
-        "Understanding vs Privacy",
-        Aim("Understanding"),
-        Aim("Privacy"),
-        baseline_votes=[5, 7, 7, 6, 7, 3]
-    ),
-    Tension(
-        "Responsive vs Inclusive Governance",
-        Aim("Quick Response"),
-        Aim("Inclusive Process"),
-        baseline_votes=[2, 3, 7, 6, 4, 4]
-    ),
-]
+def load_march_2025_session() -> Project:
+    """Load the real March 2025 workshop session data."""
+    
+    project = Project(
+        id="march-2025",
+        name="In/Tension Session Results"
+    )
+    
+    # Participants
+    participants = [
+        Participant(id="stratton", display_name="Stratton Glaze"),
+        Participant(id="emily", display_name="Emily"),
+        Participant(id="klyn", display_name="Klyn"),
+        Participant(id="andrew", display_name="Andrew"),
+        Participant(id="bob", display_name="Bob"),
+        Participant(id="dan", display_name="Dan Heck"),
+    ]
+    for p in participants:
+        project.add_participant(p)
+    
+    # Tensions with votes
+    tension_data = [
+        ("Quality vs Quantity of Outputs",
+         Aim("Quality", "Focus on excellence"),
+         Aim("Quantity", "Focus on volume"),
+         [0, 1, 1, 4, 3, 5]),
+        
+        ("Data Tracking vs Privacy",
+         Aim("Comprehensive Tracking"),
+         Aim("Privacy by Design"),
+         [5, 9, 5, 9, 2, 5]),
+        
+        ("Oversight vs Personalization",
+         Aim("Centralized Oversight"),
+         Aim("Personalization"),
+         [1, 2, 8, 3, 5, 6]),
+        
+        ("Outputs vs Experiences",
+         Aim("Good AI Outputs"),
+         Aim("Good Workflow Experiences"),
+         [1, 3, 9, 3, 3, 4]),
+        
+        ("Back Office vs Front Office",
+         Aim("Back Office"),
+         Aim("Front Office"),
+         [0, 0, 2, 0, 1, 1]),
+        
+        ("Understanding vs Privacy",
+         Aim("Understanding"),
+         Aim("Privacy"),
+         [5, 7, 7, 6, 7, 3]),
+        
+        ("Responsive vs Inclusive Governance",
+         Aim("Quick Response"),
+         Aim("Inclusive Process"),
+         [2, 3, 7, 6, 4, 4]),
+    ]
+    
+    for name, left_aim, right_aim, votes in tension_data:
+        tension = Tension(name=name, left_aim=left_aim, right_aim=right_aim)
+        for participant, value in zip(participants, votes):
+            tension.add_vote(Vote(
+                participant=participant,
+                round=VotingRound.BASELINE,
+                value=value
+            ))
+        project.add_tension(tension)
+    
+    return project
 
 
 if __name__ == "__main__":
-    html = render_page(TENSIONS)
+    project = load_march_2025_session()
+    html = render_project(project)
     
     with open("public/index.html", "w") as f:
         f.write(html)
     
-    print("Generated public/index.html")
+    print(f"Generated public/index.html")
+    print(f"  Project: {project.name}")
+    print(f"  Participants: {len(project.participants)}")
+    print(f"  Tensions: {len(project.tensions)}")
