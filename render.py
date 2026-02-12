@@ -73,7 +73,7 @@ def render_continuum(tension: Tension,
         'border': '#e0e0e0',
         'bar_fill': '#ffffff',
         'bar_stroke': '#999999',
-        'baseline_vote': '#c8c8c8',
+        'baseline_vote': '#a8d4f0',  # Light blue
         'baseline_avg': '#666666',
         'comparison_vote': '#404040',
         'comparison_avg': '#1a1a1a',
@@ -170,12 +170,40 @@ def render_continuum(tension: Tension,
   <circle cx="{avg_x:.1f}" cy="{line_y}" r="12" fill="{colors['comparison_avg']}" stroke="#fff" stroke-width="2"/>
 '''
     
-    # Aim labels
-    svg += f'''
-  <!-- Aim labels -->
-  <text x="{margin_x - 20}" y="{bar_y + bar_height/2 + 6}" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="600" fill="{colors['text']}">{tension.left_aim.label}</text>
-  <text x="{margin_x + bar_width + 20}" y="{bar_y + bar_height/2 + 6}" text-anchor="start" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="600" fill="{colors['text']}">{tension.right_aim.label}</text>
-'''
+    # Aim labels (stacked if long)
+    def wrap_label(label, max_chars=18):
+        """Split label into lines if too long."""
+        words = label.split()
+        lines = []
+        current = ""
+        for word in words:
+            if len(current) + len(word) + 1 <= max_chars:
+                current = f"{current} {word}".strip()
+            else:
+                if current:
+                    lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+        return lines if lines else [label]
+    
+    # Left aim
+    left_lines = wrap_label(tension.left_aim.label)
+    line_height = 18
+    start_y = bar_y + bar_height/2 - (len(left_lines) - 1) * line_height / 2
+    svg += '  <!-- Left aim label -->\n'
+    for i, line in enumerate(left_lines):
+        y = start_y + i * line_height
+        svg += f'  <text x="{margin_x - 20}" y="{y}" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="600" fill="{colors["text"]}">{line}</text>\n'
+    
+    # Right aim
+    right_lines = wrap_label(tension.right_aim.label)
+    start_y = bar_y + bar_height/2 - (len(right_lines) - 1) * line_height / 2
+    svg += '  <!-- Right aim label -->\n'
+    for i, line in enumerate(right_lines):
+        y = start_y + i * line_height
+        svg += f'  <text x="{margin_x + bar_width + 20}" y="{y}" text-anchor="start" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="600" fill="{colors["text"]}">{line}</text>\n'
+
     
     # Aim descriptions (if provided)
     if tension.left_aim.description:
