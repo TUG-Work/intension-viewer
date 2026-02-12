@@ -119,17 +119,15 @@ def render_continuum(tension: Tension,
   <text x="{width - 140}" y="{legend_y}" font-family="system-ui" font-size="12" fill="{colors['text_light']}">Baseline votes</text>
 '''
     
-    # Continuum bar (cells)
+    # Continuum bar (solid line)
+    line_y = bar_y + bar_height // 2
     svg += f'''
-  <!-- Continuum bar -->
-  <rect x="{margin_x}" y="{bar_y}" width="{bar_width}" height="{bar_height}" fill="{colors['bar_fill']}" stroke="{colors['bar_stroke']}" stroke-width="1"/>
+  <!-- Continuum line -->
+  <line x1="{margin_x}" y1="{line_y}" x2="{margin_x + bar_width}" y2="{line_y}" stroke="{colors['bar_stroke']}" stroke-width="3"/>
+  
+  <!-- Center fulcrum triangle -->
+  <polygon points="{width//2},{line_y + 8} {width//2 - 20},{line_y + 40} {width//2 + 20},{line_y + 40}" fill="{colors['text']}" />
 '''
-    
-    # Cell dividers
-    bar_stroke = colors['bar_stroke']
-    for i in range(1, positions):
-        x = margin_x + (i * cell_width)
-        svg += f'  <line x1="{x}" y1="{bar_y}" x2="{x}" y2="{bar_y + bar_height}" stroke="{bar_stroke}" stroke-width="1"/>\n'
     
     # Baseline vote rectangles (above bar)
     for pos, count in enumerate(baseline_counts):
@@ -152,25 +150,24 @@ def render_continuum(tension: Tension,
                 y = bar_y + bar_height + vote_gap + (vote_height + vote_gap) * i
                 svg += f'  <rect x="{x:.1f}" y="{y:.1f}" width="{vote_width:.1f}" height="{vote_height}" fill="{colors["comparison_vote"]}" rx="2"/>\n'
     
-    # Baseline average marker (on bar)
+    # Baseline average marker (circle on line)
+    line_y = bar_y + bar_height // 2
     baseline_avg = tension.baseline_average()
     if baseline_avg is not None:
         avg_x = margin_x + (baseline_avg * cell_width) + (cell_width / 2)
-        marker_width = 20
         svg += f'''
   <!-- Baseline average -->
-  <rect x="{avg_x - marker_width/2:.1f}" y="{bar_y + 4}" width="{marker_width}" height="{bar_height - 8}" fill="{colors['baseline_avg']}" rx="2"/>
+  <circle cx="{avg_x:.1f}" cy="{line_y}" r="12" fill="{colors['baseline_avg']}" stroke="#fff" stroke-width="2"/>
 '''
     
-    # Comparison average marker (on bar, offset slightly)
+    # Comparison average marker (circle, different style)
     if show_comparison and tension.comparison_votes:
         comp_avg = tension.comparison_average()
         if comp_avg is not None:
             avg_x = margin_x + (comp_avg * cell_width) + (cell_width / 2)
-            marker_width = 20
             svg += f'''
   <!-- Comparison average -->
-  <rect x="{avg_x - marker_width/2:.1f}" y="{bar_y + 4}" width="{marker_width}" height="{bar_height - 8}" fill="{colors['comparison_avg']}" rx="2"/>
+  <circle cx="{avg_x:.1f}" cy="{line_y}" r="12" fill="{colors['comparison_avg']}" stroke="#fff" stroke-width="2"/>
 '''
     
     # Aim labels
