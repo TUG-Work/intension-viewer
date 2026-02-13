@@ -59,13 +59,43 @@ class Vote:
     """
     One participant's expression of how a continuum should be balanced.
     
-    Value is an integer on the scale (typically 0-10), where:
-    - Lower values = lean toward left aim
-    - Higher values = lean toward right aim
+    A Vote captures both CONTEXT and FOCUS:
+    
+    CONTEXT (where this vote lives):
+    - participant: Who cast this vote
+    - tension_id: Which continuum this vote is for
+    - round: Which voting round (baseline or comparison)
+    - project_id: Which project/workshop this belongs to
+    
+    FOCUS (the actual expression):
+    - value: Position on the scale (integer, typically 0-10)
+      - Lower values = lean toward left aim
+      - Higher values = lean toward right aim
+    
+    LIFECYCLE:
+    - submitted_at: When the vote was first submitted
+    - updated_at: When the vote was last changed (if edited)
+    
+    Per spec: "Participants must be able to return to continuums and edit 
+    votes when this function has been enabled by the facilitator."
     """
+    # Context
     participant: Participant
-    round: VotingRound
-    value: int  # Position on the scale (0-10)
+    tension_id: str           # Which continuum this vote is for
+    round: VotingRound        # Baseline or Comparison
+    value: int                # Position on the scale (0-10) - FOCUS
+    
+    # Optional context
+    project_id: Optional[str] = None  # Parent project (for cross-reference)
+    
+    # Lifecycle
+    submitted_at: Optional[str] = None  # ISO timestamp
+    updated_at: Optional[str] = None    # ISO timestamp (if edited)
+    
+    @property
+    def is_edited(self) -> bool:
+        """True if this vote was changed after initial submission."""
+        return self.updated_at is not None and self.updated_at != self.submitted_at
 
 
 @dataclass
@@ -129,7 +159,13 @@ class Tension:
     order: int = 0  # Display order in project
     
     def add_vote(self, vote: Vote) -> None:
-        """Record a vote on this tension."""
+        """
+        Record a vote on this tension.
+        
+        Automatically sets the vote's tension_id if not already set.
+        """
+        if not vote.tension_id:
+            vote.tension_id = self.name  # Use name as ID for now
         self.votes.append(vote)
     
     def get_votes(self, round: VotingRound) -> List[Vote]:

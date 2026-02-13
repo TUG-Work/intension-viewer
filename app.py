@@ -91,8 +91,11 @@ def load_march_2025_session() -> Project:
         for participant, value in zip(participants, data["baseline_votes"]):
             tension.add_vote(Vote(
                 participant=participant,
+                tension_id=data["name"],
                 round=VotingRound.BASELINE,
-                value=value
+                value=value,
+                project_id=project.id,
+                submitted_at="2025-03-28T12:00:00Z"  # From original session
             ))
         
         project.add_tension(tension)
