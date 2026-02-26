@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Vote — In/Tension</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f5;
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* Header */
+    .header {
+      background: #333;
+      color: white;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0;
+    }
+    
+    .progress {
+      font-size: 14px;
+      opacity: 0.8;
+    }
+    
+    /* Main content */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 24px 20px;
+      max-width: 800px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    
+    /* Tension display */
+    .tension-card {
+      background: white;
+      border-radius: 12px;
+      padding: 32px 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .tension-name {
+      font-size: 14px;
+      color: #666;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    
+    /* Scale container */
+    .scale-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    
+    /* Aims */
+    .aims {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    
+    .aim {
+      max-width: 35%;
+      text-align: center;
+    }
+    
+    .aim.left { text-align: left; }
+    .aim.right { text-align: right; }
+    
+    .aim-label {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 4px;
+    }
+    
+    .aim-description {
+      font-size: 12px;
+      color: #666;
+    }
+    
+    /* Scale (11 dots) */
+    .scale {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 0;
+      position: relative;
+    }
+    
+    .scale-line {
+      position: absolute;
+      top: 50%;
+      left: 24px;
+      right: 24px;
+      height: 3px;
+      background: #ddd;
+      transform: translateY(-50%);
+      z-index: 0;
+    }
+    
+    .scale-dot {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #e8e8e8;
+      border: 3px solid #ccc;
+      cursor: pointer;
+      z-index: 1;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .scale-dot:hover {
+      background: #d0e8ff;
+      border-color: #80b8ff;
+      transform: scale(1.1);
+    }
+    
+    .scale-dot.selected {
+      background: #4a90d9;
+      border-color: #2a70b9;
+    }
+    
+    .scale-dot.selected::after {
+      content: '';
+      width: 16px;
+      height: 16px;
+      background: white;
+      border-radius: 50%;
+    }
+    
+    /* Center marker */
+    .scale-dot.center {
+      border-style: dashed;
+    }
+    
+    /* Navigation */
+    .nav {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid #eee;
+    }
+    
+    .nav button {
+      flex: 1;
+      padding: 16px 24px;
+      font-size: 16px;
+      font-weight: 500;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    
+    .nav button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    
+    .btn-secondary {
+      background: #e8e8e8;
+      color: #333;
+    }
+    
+    .btn-secondary:hover:not(:disabled) {
+      background: #ddd;
+    }
+    
+    .btn-primary {
+      background: #4a90d9;
+      color: white;
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      background: #3a80c9;
+    }
+    
+    .btn-submit {
+      background: #2a9d5c;
+      color: white;
+    }
+    
+    .btn-submit:hover:not(:disabled) {
+      background: #1a8d4c;
+    }
+    
+    /* Progress dots */
+    .progress-dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    
+    .progress-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ddd;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    
+    .progress-dot.voted {
+      background: #4a90d9;
+    }
+    
+    .progress-dot.current {
+      transform: scale(1.3);
+      box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.3);
+    }
+    
+    /* Submitted state */
+    .submitted {
+      text-align: center;
+      padding: 48px 24px;
+    }
+    
+    .submitted h2 {
+      font-size: 24px;
+      margin: 0 0 12px 0;
+    }
+    
+    .submitted p {
+      color: #666;
+    }
+    
+    /* Mobile adjustments */
+    @media (max-width: 600px) {
+      .scale-dot {
+        width: 36px;
+        height: 36px;
+      }
+      
+      .aim-label {
+        font-size: 14px;
+      }
+      
+      .tension-card {
+        padding: 24px 16px;
+      }
+    }
+    
+    @media (max-width: 400px) {
+      .scale-dot {
+        width: 28px;
+        height: 28px;
+        border-width: 2px;
+      }
+      
+      .scale-dot.selected::after {
+        width: 10px;
+        height: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>In/Tension</h1>
+    <span class="progress" id="progress">1 of 7</span>
+  </div>
+  
+  <div class="main">
+    <div class="tension-card" id="tension-card">
+      <div class="tension-name" id="tension-name">Quality vs Quantity</div>
+      
+      <div class="scale-container">
+        <div class="aims">
+          <div class="aim left">
+            <div class="aim-label" id="left-aim">Quality</div>
+            <div class="aim-description" id="left-desc"></div>
+          </div>
+          <div class="aim right">
+            <div class="aim-label" id="right-aim">Quantity</div>
+            <div class="aim-description" id="right-desc"></div>
+          </div>
+        </div>
+        
+        <div class="scale" id="scale">
+          <div class="scale-line"></div>
+          <!-- Dots generated by JS -->
+        </div>
+      </div>
+      
+      <div class="nav">
+        <button class="btn-secondary" id="btn-back" disabled>Back</button>
+        <button class="btn-primary" id="btn-next">Next</button>
+      </div>
+      
+      <div class="progress-dots" id="progress-dots">
+        <!-- Generated by JS -->
+      </div>
+    </div>
+    
+    <div class="submitted" id="submitted" style="display: none;">
+      <h2>✓ Votes Submitted</h2>
+      <p>Thank you for participating!</p>
+    </div>
+  </div>
+  
+  <script>
+    // Sample data (would come from server)
+    const SESSION = {
+      participant: { id: 'user1', displayName: 'You' },
+      round: 'baseline',
+      tensions: [
+        {
+          id: 'quality-quantity',
+          name: 'Quality vs Quantity of Outputs',
+          leftAim: { label: 'Quality', description: 'Focus on excellence' },
+          rightAim: { label: 'Quantity', description: 'Focus on volume' }
+        },
+        {
+          id: 'tracking-privacy',
+          name: 'Data Tracking vs Privacy',
+          leftAim: { label: 'Comprehensive Tracking', description: '' },
+          rightAim: { label: 'Privacy by Design', description: '' }
+        },
+        {
+          id: 'oversight-personalization',
+          name: 'Oversight vs Personalization',
+          leftAim: { label: 'Centralized Oversight', description: '' },
+          rightAim: { label: 'Personalization', description: '' }
+        },
+        {
+          id: 'outputs-experiences',
+          name: 'Outputs vs Experiences',
+          leftAim: { label: 'Good AI Outputs', description: '' },
+          rightAim: { label: 'Good Workflow Experiences', description: '' }
+        },
+        {
+          id: 'back-front',
+          name: 'Back Office vs Front Office',
+          leftAim: { label: 'Back Office', description: '' },
+          rightAim: { label: 'Front Office', description: '' }
+        },
+        {
+          id: 'understanding-privacy',
+          name: 'Understanding vs Privacy',
+          leftAim: { label: 'Understanding', description: '' },
+          rightAim: { label: 'Privacy', description: '' }
+        },
+        {
+          id: 'responsive-inclusive',
+          name: 'Responsive vs Inclusive Governance',
+          leftAim: { label: 'Quick Response', description: '' },
+          rightAim: { label: 'Inclusive Process', description: '' }
+        }
+      ]
+    };
+    
+    // State
+    let currentIndex = 0;
+    let votes = {};  // tensionId -> value
+    let submitted = false;
+    
+    // Elements
+    const tensionCard = document.getElementById('tension-card');
+    const submittedEl = document.getElementById('submitted');
+    const progressEl = document.getElementById('progress');
+    const tensionNameEl = document.getElementById('tension-name');
+    const leftAimEl = document.getElementById('left-aim');
+    const leftDescEl = document.getElementById('left-desc');
+    const rightAimEl = document.getElementById('right-aim');
+    const rightDescEl = document.getElementById('right-desc');
+    const scaleEl = document.getElementById('scale');
+    const progressDotsEl = document.getElementById('progress-dots');
+    const btnBack = document.getElementById('btn-back');
+    const btnNext = document.getElementById('btn-next');
+    
+    // Initialize scale dots
+    function initScale() {
+      // Keep the line, add dots
+      const line = scaleEl.querySelector('.scale-line');
+      scaleEl.innerHTML = '';
+      scaleEl.appendChild(line);
+      
+      for (let i = 0; i <= 10; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'scale-dot' + (i === 5 ? ' center' : '');
+        dot.dataset.value = i;
+        dot.addEventListener('click', () => selectValue(i));
+        scaleEl.appendChild(dot);
+      }
+    }
+    
+    // Initialize progress dots
+    function initProgressDots() {
+      progressDotsEl.innerHTML = '';
+      SESSION.tensions.forEach((t, i) => {
+        const dot = document.createElement('div');
+        dot.className = 'progress-dot';
+        dot.addEventListener('click', () => goToTension(i));
+        progressDotsEl.appendChild(dot);
+      });
+    }
+    
+    // Select a value
+    function selectValue(value) {
+      const tension = SESSION.tensions[currentIndex];
+      votes[tension.id] = value;
+      render();
+    }
+    
+    // Navigate
+    function goToTension(index) {
+      if (index >= 0 && index < SESSION.tensions.length) {
+        currentIndex = index;
+        render();
+      }
+    }
+    
+    function nextTension() {
+      if (currentIndex < SESSION.tensions.length - 1) {
+        currentIndex++;
+        render();
+      } else {
+        submitVotes();
+      }
+    }
+    
+    function prevTension() {
+      if (currentIndex > 0) {
+        currentIndex--;
+        render();
+      }
+    }
+    
+    function submitVotes() {
+      submitted = true;
+      console.log('Submitted votes:', votes);
+      render();
+    }
+    
+    // Render current state
+    function render() {
+      if (submitted) {
+        tensionCard.style.display = 'none';
+        submittedEl.style.display = 'block';
+        return;
+      }
+      
+      const tension = SESSION.tensions[currentIndex];
+      const currentVote = votes[tension.id];
+      
+      // Update text
+      progressEl.textContent = `${currentIndex + 1} of ${SESSION.tensions.length}`;
+      tensionNameEl.textContent = tension.name;
+      leftAimEl.textContent = tension.leftAim.label;
+      leftDescEl.textContent = tension.leftAim.description || '';
+      rightAimEl.textContent = tension.rightAim.label;
+      rightDescEl.textContent = tension.rightAim.description || '';
+      
+      // Update scale dots
+      const dots = scaleEl.querySelectorAll('.scale-dot');
+      dots.forEach((dot, i) => {
+        dot.classList.toggle('selected', i === currentVote);
+      });
+      
+      // Update progress dots
+      const pDots = progressDotsEl.querySelectorAll('.progress-dot');
+      pDots.forEach((dot, i) => {
+        const t = SESSION.tensions[i];
+        dot.classList.toggle('voted', votes[t.id] !== undefined);
+        dot.classList.toggle('current', i === currentIndex);
+      });
+      
+      // Update buttons
+      btnBack.disabled = currentIndex === 0;
+      
+      const isLast = currentIndex === SESSION.tensions.length - 1;
+      const allVoted = SESSION.tensions.every(t => votes[t.id] !== undefined);
+      
+      if (isLast && allVoted) {
+        btnNext.textContent = 'Submit';
+        btnNext.className = 'btn-submit';
+      } else {
+        btnNext.textContent = 'Next';
+        btnNext.className = 'btn-primary';
+      }
+      
+      // Disable next if no vote on current
+      btnNext.disabled = currentVote === undefined;
+    }
+    
+    // Keyboard support
+    document.addEventListener('keydown', (e) => {
+      if (submitted) return;
+      
+      if (e.key === 'ArrowLeft') {
+        const tension = SESSION.tensions[currentIndex];
+        const current = votes[tension.id];
+        if (current !== undefined && current > 0) {
+          selectValue(current - 1);
+        } else if (current === undefined) {
+          selectValue(5); // Start at center
+        }
+      } else if (e.key === 'ArrowRight') {
+        const tension = SESSION.tensions[currentIndex];
+        const current = votes[tension.id];
+        if (current !== undefined && current < 10) {
+          selectValue(current + 1);
+        } else if (current === undefined) {
+          selectValue(5); // Start at center
+        }
+      } else if (e.key >= '0' && e.key <= '9') {
+        selectValue(parseInt(e.key));
+      } else if (e.key === 'Enter' && !btnNext.disabled) {
+        nextTension();
+      }
+    });
+    
+    // Button handlers
+    btnBack.addEventListener('click', prevTension);
+    btnNext.addEventListener('click', nextTension);
+    
+    // Init
+    initScale();
+    initProgressDots();
+    render();
+  </script>
+</body>
+</html>

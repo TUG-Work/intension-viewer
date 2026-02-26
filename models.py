@@ -252,3 +252,134 @@ class Project:
 
 # Type alias for clarity
 ContinuumSet = List[Continuum]
+
+
+class SessionStatus(Enum):
+    """Status of a voting session."""
+    NOT_STARTED = "not_started"
+    IN_PROGRESS = "in_progress"
+    SUBMITTED = "submitted"
+
+
+class SubmissionMode(Enum):
+    """How votes are submitted."""
+    ONE_BY_ONE = "one_by_one"    # Submit each vote individually
+    BATCH = "batch"              # Vote all, then submit together
+
+
+@dataclass
+class VotingSession:
+    """
+    A participant's voting session within a workshop.
+    
+    Manages the flow of voting on a sequence of tensions,
+    tracking progress and pending votes until submission.
+    """
+    session_id: str
+    project: Project
+    round: VotingRound
+    participant: Participant
+    submission_mode: SubmissionMode = SubmissionMode.BATCH
+    
+    # State
+    current_index: int = 0
+    pending_votes: dict = field(default_factory=dict)  # tension_id -> value
+    status: SessionStatus = SessionStatus.NOT_STARTED
+    
+    @property
+    def tensions(self) -> List[Tension]:
+        """Get the ordered list of tensions to vote on."""
+        return self.project.get_visible_tensions()
+    
+    @property
+    def current_tension(self) -> Optional[Tension]:
+        """Get the currently active tension."""
+        tensions = self.tensions
+        if 0 <= self.current_index < len(tensions):
+            return tensions[self.current_index]
+        return None
+    
+    @property
+    def progress(self) -> tuple:
+        """Return (current, total) for progress display."""
+        return (self.current_index + 1, len(self.tensions))
+    
+    @property
+    def is_complete(self) -> bool:
+        """True if all tensions have been voted on."""
+        return len(self.pending_votes) == len(self.tensions)
+    
+    def start(self) -> None:
+        """Begin the voting session."""
+        self.status = SessionStatus.IN_PROGRESS
+        self.current_index = 0
+    
+    def cast_vote(self, value: int) -> None:
+        """
+        Record a vote for the current tension.
+        
+        Value should be 0-10 (11 positions).
+        """
+        if self.current_tension is None:
+            raise ValueError("No current tension")
+        if not 0 <= value <= 10:
+            raise ValueError(f"Vote value must be 0-10, got {value}")
+        
+        tension_id = self.current_tension.name
+        self.pending_votes[tension_id] = value
+        
+        # In one-by-one mode, could trigger immediate submission here
+    
+    def get_vote(self, tension_id: str) -> Optional[int]:
+        """Get the pending vote for a tension, if any."""
+        return self.pending_votes.get(tension_id)
+    
+    def next_tension(self) -> bool:
+        """Move to next tension. Returns False if at end."""
+        if self.current_index < len(self.tensions) - 1:
+            self.current_index += 1
+            return True
+        return False
+    
+    def previous_tension(self) -> bool:
+        """Move to previous tension. Returns False if at start."""
+        if self.current_index > 0:
+            self.current_index -= 1
+            return True
+        return False
+    
+    def go_to_tension(self, index: int) -> bool:
+        """Jump to a specific tension by index."""
+        if 0 <= index < len(self.tensions):
+            self.current_index = index
+            return True
+        return False
+    
+    def submit(self) -> List[Vote]:
+        """
+        Submit all pending votes.
+        
+        Returns the list of Vote objects created.
+        """
+        if self.status == SessionStatus.SUBMITTED:
+            raise ValueError("Session already submitted")
+        
+        votes = []
+        timestamp = None  # Would be datetime.now().isoformat() in real use
+        
+        for tension in self.tensions:
+            value = self.pending_votes.get(tension.name)
+            if value is not None:
+                vote = Vote(
+                    participant=self.participant,
+                    tension_id=tension.name,
+                    round=self.round,
+                    value=value,
+                    project_id=self.project.id,
+                    submitted_at=timestamp
+                )
+                tension.add_vote(vote)
+                votes.append(vote)
+        
+        self.status = SessionStatus.SUBMITTED
+        return votes
