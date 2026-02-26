@@ -226,3 +226,44 @@ class VoteInput(Protocol):
 2. Define the component interfaces in Python/TypeScript
 3. Build Phase 1 (TensionCard + ClickInput) as a prototype
 4. Test on desktop and mobile
+
+---
+
+## Database Setup (Neon + Vercel)
+
+### 1. Install dependencies
+```bash
+cd /Users/kevin/Projects/intension-viewer
+npm install
+```
+
+### 2. Get DATABASE_URL from Vercel
+Go to Vercel dashboard → intension-viewer-rdr → Settings → Environment Variables
+Copy the `DATABASE_URL` value.
+
+### 3. Set up schema
+```bash
+export DATABASE_URL="postgres://..."
+npm run db:setup
+```
+
+### 4. Seed demo data
+```bash
+npm run db:setup      # Creates tables
+node scripts/seed-demo.js  # Creates demo project
+```
+
+### 5. Deploy
+Push to GitHub, Vercel auto-deploys.
+
+### API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/project` | GET | Get project by id or code |
+| `/api/project` | POST | Create new project |
+| `/api/session` | POST | Start voting session |
+| `/api/session` | GET | Get session + votes |
+| `/api/session` | PUT | Update session status |
+| `/api/vote` | POST | Submit/update a vote |
+| `/api/vote` | GET | Get votes |

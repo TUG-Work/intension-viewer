@@ -1,0 +1,12 @@
+{
+  "name": "intension-viewer",
+  "version": "1.0.0",
+  "description": "In/Tension modeling visualization and voting",
+  "scripts": {
+    "dev": "vercel dev",
+    "db:setup": "node scripts/setup-db.js"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.9.0"
+  }
+}
