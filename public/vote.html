@@ -679,8 +679,10 @@
       progressEl.textContent = 'Complete';
       
       const votedCount = Object.keys(votes).length;
-      document.getElementById('submitted-summary').textContent = 
-        `You voted on ${votedCount} of ${tensions.length} tensions.`;
+      document.getElementById('submitted-summary').innerHTML = 
+        `You voted on ${votedCount} of ${tensions.length} tensions.<br><br>
+        <a href="results.html?code=${codeInput.value.toUpperCase()}&participantId=${session.participantId}" 
+           style="color: #4a90d9;">View Results →</a>`;
     }
     
     // Render current state

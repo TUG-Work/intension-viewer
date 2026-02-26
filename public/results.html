@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Results — In/Tension</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f0f0f0;
+      color: #333;
+    }
+    
+    .header {
+      background: #333;
+      color: white;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0;
+    }
+    
+    .header .info {
+      font-size: 14px;
+      opacity: 0.8;
+    }
+    
+    .main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    
+    .project-title {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    
+    .project-title h2 {
+      margin: 0 0 8px 0;
+      font-size: 24px;
+    }
+    
+    .project-title .meta {
+      color: #666;
+      font-size: 14px;
+    }
+    
+    /* Continuum Card */
+    .continuum-card {
+      background: white;
+      border-radius: 8px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    
+    .continuum-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+    }
+    
+    .continuum-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0;
+    }
+    
+    .continuum-stats {
+      font-size: 12px;
+      color: #666;
+      text-align: right;
+    }
+    
+    /* Legend */
+    .legend {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      color: #666;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .legend-swatch {
+      width: 16px;
+      height: 12px;
+      border-radius: 2px;
+    }
+    
+    .legend-swatch.baseline { background: #a8d4f0; }
+    .legend-swatch.yours { background: #4a90d9; border: 2px solid #2a70b9; }
+    .legend-swatch.average { background: #666; border-radius: 50%; width: 12px; height: 12px; }
+    
+    /* Continuum visualization */
+    .continuum-viz {
+      position: relative;
+      height: 200px;
+      margin: 0 100px;
+    }
+    
+    /* Aims */
+    .aim {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      max-width: 90px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    .aim.left {
+      right: 100%;
+      text-align: right;
+      padding-right: 16px;
+    }
+    
+    .aim.right {
+      left: 100%;
+      text-align: left;
+      padding-left: 16px;
+    }
+    
+    /* Scale line */
+    .scale-line {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: #ccc;
+      transform: translateY(-50%);
+    }
+    
+    /* Fulcrum */
+    .fulcrum {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 16px solid transparent;
+      border-right: 16px solid transparent;
+      border-bottom: 28px solid #333;
+      margin-top: 6px;
+    }
+    
+    /* Vote stack container */
+    .vote-stacks {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 50%;
+      display: flex;
+    }
+    
+    .vote-column {
+      flex: 1;
+      display: flex;
+      flex-direction: column-reverse;
+      align-items: center;
+      padding-bottom: 12px;
+    }
+    
+    .vote-block {
+      width: 70%;
+      height: 18px;
+      margin-bottom: 3px;
+      border-radius: 3px;
+      background: #a8d4f0;
+      position: relative;
+    }
+    
+    .vote-block.yours {
+      background: #4a90d9;
+      border: 2px solid #2a70b9;
+    }
+    
+    .vote-block .initials {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 10px;
+      font-weight: 600;
+      color: white;
+    }
+    
+    /* Average marker */
+    .average-marker {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 20px;
+      height: 20px;
+      background: #666;
+      border-radius: 50%;
+      border: 3px solid white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      z-index: 10;
+    }
+    
+    /* Your vote indicator */
+    .your-vote-indicator {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #4a90d9;
+      color: white;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      white-space: nowrap;
+      margin-bottom: 4px;
+    }
+    
+    .your-vote-indicator::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 4px solid transparent;
+      border-top-color: #4a90d9;
+    }
+    
+    /* Loading / Error */
+    .loading, .error-state {
+      text-align: center;
+      padding: 48px;
+      color: #666;
+    }
+    
+    .error-state {
+      color: #d9534f;
+    }
+    
+    /* Join form */
+    .join-form {
+      background: white;
+      border-radius: 8px;
+      padding: 32px;
+      max-width: 400px;
+      margin: 48px auto;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    
+    .join-form h2 {
+      margin: 0 0 8px 0;
+    }
+    
+    .join-form p {
+      color: #666;
+      margin: 0 0 24px 0;
+    }
+    
+    .join-form input {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 16px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      margin-bottom: 12px;
+    }
+    
+    .join-form input:focus {
+      outline: none;
+      border-color: #4a90d9;
+    }
+    
+    .join-form button {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 16px;
+      background: #4a90d9;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    
+    .join-form button:hover {
+      background: #3a80c9;
+    }
+    
+    .join-form .error {
+      color: #d9534f;
+      margin-top: 12px;
+    }
+    
+    /* Mobile */
+    @media (max-width: 700px) {
+      .continuum-viz {
+        margin: 0 60px;
+      }
+      
+      .aim {
+        max-width: 55px;
+        font-size: 12px;
+      }
+      
+      .aim.left { padding-right: 8px; }
+      .aim.right { padding-left: 8px; }
+      
+      .vote-block {
+        height: 14px;
+      }
+      
+      .continuum-card {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>In/Tension Results</h1>
+    <div class="info" id="header-info"></div>
+  </div>
+  
+  <div class="main">
+    <!-- Join form -->
+    <div class="join-form" id="join-form">
+      <h2>View Results</h2>
+      <p>Enter the voting code to see results</p>
+      <input type="text" id="code-input" placeholder="Enter code (e.g., DEMO01)" maxlength="10">
+      <button onclick="loadResults()">View Results</button>
+      <div class="error" id="error-msg" style="display:none"></div>
+    </div>
+    
+    <!-- Loading -->
+    <div class="loading" id="loading" style="display:none">
+      Loading results...
+    </div>
+    
+    <!-- Results container -->
+    <div id="results-container" style="display:none">
+      <div class="project-title">
+        <h2 id="project-name"></h2>
+        <div class="meta" id="project-meta"></div>
+      </div>
+      
+      <div id="continuums"></div>
+    </div>
+  </div>
+  
+  <script>
+    const API = '';
+    
+    // Check URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlCode = urlParams.get('code');
+    const urlParticipantId = urlParams.get('participantId');
+    
+    if (urlCode) {
+      document.getElementById('code-input').value = urlCode.toUpperCase();
+      loadResults();
+    }
+    
+    async function loadResults() {
+      const code = document.getElementById('code-input').value.trim().toUpperCase();
+      if (!code) {
+        showError('Please enter a code');
+        return;
+      }
+      
+      hideError();
+      document.getElementById('join-form').style.display = 'none';
+      document.getElementById('loading').style.display = 'block';
+      
+      try {
+        let url = `${API}/api/results?code=${code}`;
+        if (urlParticipantId) {
+          url += `&participantId=${urlParticipantId}`;
+        }
+        
+        const res = await fetch(url);
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to load results');
+        }
+        
+        renderResults(data);
+        
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('results-container').style.display = 'block';
+        
+        // Update URL
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('code', code);
+        history.replaceState({}, '', newUrl);
+        
+      } catch (err) {
+        console.error('Load error:', err);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('join-form').style.display = 'block';
+        showError(err.message);
+      }
+    }
+    
+    function showError(msg) {
+      const el = document.getElementById('error-msg');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+    
+    function hideError() {
+      document.getElementById('error-msg').style.display = 'none';
+    }
+    
+    function renderResults(data) {
+      // Header
+      document.getElementById('header-info').textContent = 
+        `${data.participantCount} participant${data.participantCount !== 1 ? 's' : ''} · ${data.round} round`;
+      
+      // Title
+      document.getElementById('project-name').textContent = data.project.name;
+      document.getElementById('project-meta').textContent = 
+        `${data.results.length} tensions · ${data.round} round`;
+      
+      // Render each continuum
+      const container = document.getElementById('continuums');
+      container.innerHTML = '';
+      
+      data.results.forEach((result, index) => {
+        container.appendChild(renderContinuum(result, index + 1));
+      });
+    }
+    
+    function renderContinuum(result, number) {
+      const card = document.createElement('div');
+      card.className = 'continuum-card';
+      
+      // Header
+      const header = document.createElement('div');
+      header.className = 'continuum-header';
+      header.innerHTML = `
+        <h3 class="continuum-title">${result.tension.name}</h3>
+        <div class="continuum-stats">
+          ${result.voteCount} vote${result.voteCount !== 1 ? 's' : ''}
+          ${result.average !== null ? `<br>Avg: ${result.average.toFixed(1)}` : ''}
+        </div>
+      `;
+      card.appendChild(header);
+      
+      // Legend
+      const legend = document.createElement('div');
+      legend.className = 'legend';
+      legend.innerHTML = `
+        <div class="legend-item">
+          <div class="legend-swatch baseline"></div>
+          <span>Votes</span>
+        </div>
+        ${result.yourVote !== null ? `
+        <div class="legend-item">
+          <div class="legend-swatch yours"></div>
+          <span>Your vote</span>
+        </div>
+        ` : ''}
+        <div class="legend-item">
+          <div class="legend-swatch average"></div>
+          <span>Average</span>
+        </div>
+      `;
+      card.appendChild(legend);
+      
+      // Visualization
+      const viz = document.createElement('div');
+      viz.className = 'continuum-viz';
+      
+      // Aims
+      viz.innerHTML = `
+        <div class="aim left">${result.tension.leftAim.label}</div>
+        <div class="aim right">${result.tension.rightAim.label}</div>
+        <div class="scale-line"></div>
+        <div class="fulcrum"></div>
+      `;
+      
+      // Vote stacks
+      const stacks = document.createElement('div');
+      stacks.className = 'vote-stacks';
+      
+      for (let pos = 0; pos <= 10; pos++) {
+        const column = document.createElement('div');
+        column.className = 'vote-column';
+        
+        // Get votes at this position
+        const votesHere = result.voteDetails.filter(v => v.position === pos);
+        
+        votesHere.forEach(vote => {
+          const block = document.createElement('div');
+          block.className = 'vote-block' + (vote.isYou ? ' yours' : '');
+          
+          // Add initials
+          const initials = getInitials(vote.displayName);
+          block.innerHTML = `<span class="initials">${initials}</span>`;
+          block.title = vote.displayName;
+          
+          column.appendChild(block);
+        });
+        
+        stacks.appendChild(column);
+      }
+      
+      viz.appendChild(stacks);
+      
+      // Average marker
+      if (result.consentPoint !== null) {
+        const avgMarker = document.createElement('div');
+        avgMarker.className = 'average-marker';
+        const avgPercent = (result.consentPoint / 10) * 100;
+        avgMarker.style.left = avgPercent + '%';
+        avgMarker.title = `Average: ${result.consentPoint.toFixed(1)}`;
+        viz.appendChild(avgMarker);
+      }
+      
+      card.appendChild(viz);
+      
+      return card;
+    }
+    
+    function getInitials(name) {
+      return name
+        .split(' ')
+        .map(word => word[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    
+    // Enter key
+    document.getElementById('code-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') loadResults();
+    });
+  </script>
+</body>
+</html>
