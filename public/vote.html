@@ -122,18 +122,11 @@
     .tension-card {
       background: white;
       border-radius: 12px;
-      padding: 32px 24px;
+      padding: 40px 32px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
       flex: 1;
       display: flex;
       flex-direction: column;
-    }
-    
-    .tension-name {
-      font-size: 14px;
-      color: #666;
-      text-align: center;
-      margin-bottom: 24px;
     }
     
     /* Scale container */
@@ -144,31 +137,65 @@
       justify-content: center;
     }
     
+    /* Tension name */
+    .tension-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    
     /* Aims */
     .aims {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 24px;
+      margin-bottom: 32px;
+      gap: 24px;
     }
     
     .aim {
-      max-width: 35%;
-      text-align: center;
+      flex: 1;
+      max-width: 42%;
     }
     
     .aim.left { text-align: left; }
     .aim.right { text-align: right; }
     
     .aim-label {
-      font-size: 16px;
-      font-weight: 600;
-      color: #333;
-      margin-bottom: 4px;
+      font-size: 20px;
+      font-weight: 700;
+      color: #222;
+      margin-bottom: 8px;
+      line-height: 1.2;
     }
     
     .aim-description {
-      font-size: 12px;
-      color: #666;
+      font-size: 14px;
+      color: #555;
+      line-height: 1.5;
+    }
+    
+    .aim-description:empty {
+      display: none;
+    }
+    
+    /* Scale direction indicators */
+    .scale-direction {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #999;
+      margin-bottom: 8px;
+      padding: 0 4px;
+    }
+    
+    .scale-direction span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
     
     /* Scale (11 dots) */
@@ -186,9 +213,10 @@
       left: 24px;
       right: 24px;
       height: 3px;
-      background: #ddd;
+      background: linear-gradient(to right, #b8d4e8, #e8e8e8, #e8d4b8);
       transform: translateY(-50%);
       z-index: 0;
+      border-radius: 2px;
     }
     
     .scale-dot {
@@ -363,11 +391,23 @@
       }
       
       .aim-label {
-        font-size: 14px;
+        font-size: 16px;
+      }
+      
+      .aim-description {
+        font-size: 13px;
       }
       
       .tension-card {
-        padding: 24px 16px;
+        padding: 28px 20px;
+      }
+      
+      .aims {
+        gap: 16px;
+      }
+      
+      .scale-direction {
+        font-size: 10px;
       }
     }
     
@@ -381,6 +421,24 @@
       .scale-dot.selected::after {
         width: 10px;
         height: 10px;
+      }
+      
+      .aim-label {
+        font-size: 14px;
+      }
+      
+      .aim-description {
+        font-size: 12px;
+      }
+      
+      .aims {
+        flex-direction: column;
+        gap: 20px;
+      }
+      
+      .aim {
+        max-width: 100%;
+        text-align: center !important;
       }
     }
     
@@ -427,6 +485,10 @@
           </div>
         </div>
         
+        <div class="scale-direction">
+          <span>← more this way</span>
+          <span>more this way →</span>
+        </div>
         <div class="scale" id="scale">
           <div class="scale-line"></div>
         </div>
