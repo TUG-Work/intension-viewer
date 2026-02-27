@@ -7,9 +7,12 @@
 
 const { neon } = require('@neondatabase/serverless');
 
+// Dynamic date for demo project
+const today = new Date();
 const DEMO_PROJECT = {
-  id: 'demo-march-2025',
-  name: 'AI Strategy Session - March 2025',
+  id: 'demo-session',
+  name: 'AI Strategy Session',
+  sessionDate: today.toISOString().split('T')[0], // YYYY-MM-DD
   baselineCode: 'DEMO01',
   comparisonCode: 'DEMO02'
 };
@@ -125,8 +128,8 @@ async function seed() {
   
   console.log('Creating demo project...');
   await sql`
-    INSERT INTO projects (id, name, baseline_code, comparison_code)
-    VALUES (${DEMO_PROJECT.id}, ${DEMO_PROJECT.name}, ${DEMO_PROJECT.baselineCode}, ${DEMO_PROJECT.comparisonCode})
+    INSERT INTO projects (id, name, session_date, baseline_code, comparison_code)
+    VALUES (${DEMO_PROJECT.id}, ${DEMO_PROJECT.name}, ${DEMO_PROJECT.sessionDate}, ${DEMO_PROJECT.baselineCode}, ${DEMO_PROJECT.comparisonCode})
   `;
   
   console.log('Creating tensions...');

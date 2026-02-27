@@ -488,8 +488,17 @@
       document.getElementById('header-info').textContent = 
         `${data.participantCount} participant${data.participantCount !== 1 ? 's' : ''} · ${roundLabel}`;
       
-      // Title
-      document.getElementById('project-name').textContent = data.project.name;
+      // Title with formatted date
+      let titleText = data.project.name;
+      if (data.project.sessionDate) {
+        const date = new Date(data.project.sessionDate);
+        const formatted = date.toLocaleDateString('en-US', { 
+          month: 'long', 
+          year: 'numeric' 
+        });
+        titleText += ` — ${formatted}`;
+      }
+      document.getElementById('project-name').textContent = titleText;
       document.getElementById('project-meta').textContent = 
         `${data.results.length} tensions · ${roundLabel}`;
       

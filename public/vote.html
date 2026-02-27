@@ -720,7 +720,14 @@
         tensions = sessionData.tensions;
         votes = {};
         currentIndex = 0;
+        
+        // Build project name with formatted date
         projectName = projectData.project.name;
+        if (projectData.project.sessionDate) {
+          const date = new Date(projectData.project.sessionDate);
+          const formatted = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+          projectName += ` — ${formatted}`;
+        }
         projectRound = projectData.round;
         
         // Initialize UI

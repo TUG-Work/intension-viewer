@@ -130,6 +130,7 @@ module.exports = async function handler(req, res) {
       project: {
         id: project.id,
         name: project.name,
+        sessionDate: project.session_date,
         comparisonCode: project.comparison_code
       },
       round: activeRound,

@@ -66,6 +66,7 @@ module.exports = async function handler(req, res) {
         project: {
           id: project.id,
           name: project.name,
+          sessionDate: project.session_date,
           baselineCode: project.baseline_code,
           comparisonCode: project.comparison_code
         },

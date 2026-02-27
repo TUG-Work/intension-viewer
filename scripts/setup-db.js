@@ -26,6 +26,7 @@ async function setup() {
     CREATE TABLE IF NOT EXISTS projects (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
+      session_date DATE,
       baseline_code TEXT UNIQUE,
       comparison_code TEXT UNIQUE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
