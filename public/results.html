@@ -108,8 +108,11 @@
     }
     
     .legend-swatch.baseline { background: #a8d4f0; }
+    .legend-swatch.comparison { background: #90d4a8; }
     .legend-swatch.yours { background: #4a90d9; border: 2px solid #2a70b9; }
+    .legend-swatch.yours-comparison { background: #4ad990; border: 2px solid #2ab970; }
     .legend-swatch.average { background: #666; border-radius: 50%; width: 12px; height: 12px; }
+    .legend-swatch.average-baseline { background: #4a90d9; border-radius: 50%; width: 12px; height: 12px; }
     
     /* Continuum visualization */
     .continuum-viz {
@@ -165,13 +168,23 @@
       margin-top: 6px;
     }
     
-    /* Vote stack container */
+    /* Vote stack container - above the line */
     .vote-stacks {
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
       bottom: 50%;
+      display: flex;
+    }
+    
+    /* Vote stack container - below the line (for baseline in comparison view) */
+    .vote-stacks-below {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      bottom: 0;
       display: flex;
     }
     
@@ -183,6 +196,14 @@
       padding-bottom: 12px;
     }
     
+    .vote-column-below {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 12px;
+    }
+    
     .vote-block {
       width: 70%;
       height: 18px;
@@ -192,9 +213,23 @@
       position: relative;
     }
     
+    .vote-block.comparison {
+      background: #90d4a8;
+    }
+    
     .vote-block.yours {
       background: #4a90d9;
       border: 2px solid #2a70b9;
+    }
+    
+    .vote-block.yours.comparison {
+      background: #4ad990;
+      border: 2px solid #2ab970;
+    }
+    
+    .vote-column-below .vote-block {
+      margin-bottom: 0;
+      margin-top: 3px;
     }
     
     .vote-block .initials {
@@ -517,45 +552,81 @@
       container.innerHTML = '';
       
       data.results.forEach((result, index) => {
-        container.appendChild(renderContinuum(result, index + 1));
+        container.appendChild(renderContinuum(result, index + 1, data.round));
       });
     }
     
-    function renderContinuum(result, number) {
+    function renderContinuum(result, number, round) {
       const card = document.createElement('div');
       card.className = 'continuum-card';
+      const isComparison = round === 'comparison' && result.baseline;
       
       // Header
       const header = document.createElement('div');
       header.className = 'continuum-header';
-      header.innerHTML = `
-        <h3 class="continuum-title">${result.tension.name}</h3>
-        <div class="continuum-stats">
+      
+      let statsHtml;
+      if (isComparison) {
+        statsHtml = `
+          <div style="font-size: 12px;">
+            <span style="color: #4ad990;">▲</span> Comparison: ${result.voteCount} votes (avg ${result.average?.toFixed(1) || '—'})<br>
+            <span style="color: #a8d4f0;">▼</span> Baseline: ${result.baseline.voteCount} votes (avg ${result.baseline.average?.toFixed(1) || '—'})
+          </div>
+        `;
+      } else {
+        statsHtml = `
           ${result.voteCount} vote${result.voteCount !== 1 ? 's' : ''}
           ${result.average !== null ? `<br>Avg: ${result.average.toFixed(1)}` : ''}
-        </div>
+        `;
+      }
+      
+      header.innerHTML = `
+        <h3 class="continuum-title">${result.tension.name}</h3>
+        <div class="continuum-stats">${statsHtml}</div>
       `;
       card.appendChild(header);
       
       // Legend
       const legend = document.createElement('div');
       legend.className = 'legend';
-      legend.innerHTML = `
-        <div class="legend-item">
-          <div class="legend-swatch baseline"></div>
-          <span>Votes</span>
-        </div>
-        ${result.yourVote !== null ? `
-        <div class="legend-item">
-          <div class="legend-swatch yours"></div>
-          <span>Your vote</span>
-        </div>
-        ` : ''}
-        <div class="legend-item">
-          <div class="legend-swatch average"></div>
-          <span>Average</span>
-        </div>
-      `;
+      
+      if (isComparison) {
+        legend.innerHTML = `
+          <div class="legend-item">
+            <div class="legend-swatch comparison"></div>
+            <span>Comparison (above)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-swatch baseline"></div>
+            <span>Baseline (below)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-swatch average"></div>
+            <span>Comparison avg</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-swatch average-baseline"></div>
+            <span>Baseline avg</span>
+          </div>
+        `;
+      } else {
+        legend.innerHTML = `
+          <div class="legend-item">
+            <div class="legend-swatch baseline"></div>
+            <span>Votes</span>
+          </div>
+          ${result.yourVote !== null ? `
+          <div class="legend-item">
+            <div class="legend-swatch yours"></div>
+            <span>Your vote</span>
+          </div>
+          ` : ''}
+          <div class="legend-item">
+            <div class="legend-swatch average"></div>
+            <span>Average</span>
+          </div>
+        `;
+      }
       card.appendChild(legend);
       
       // Visualization
@@ -570,7 +641,7 @@
         <div class="fulcrum"></div>
       `;
       
-      // Vote stacks
+      // Vote stacks ABOVE line (comparison votes, or all votes if baseline-only)
       const stacks = document.createElement('div');
       stacks.className = 'vote-stacks';
       
@@ -583,9 +654,8 @@
         
         votesHere.forEach(vote => {
           const block = document.createElement('div');
-          block.className = 'vote-block' + (vote.isYou ? ' yours' : '');
+          block.className = 'vote-block' + (isComparison ? ' comparison' : '') + (vote.isYou ? ' yours' : '');
           
-          // Add initials
           const initials = getInitials(vote.displayName);
           block.innerHTML = `<span class="initials">${initials}</span>`;
           block.title = vote.displayName;
@@ -595,17 +665,55 @@
         
         stacks.appendChild(column);
       }
-      
       viz.appendChild(stacks);
       
-      // Average marker
+      // Vote stacks BELOW line (baseline votes in comparison view)
+      if (isComparison) {
+        const stacksBelow = document.createElement('div');
+        stacksBelow.className = 'vote-stacks-below';
+        
+        for (let pos = 0; pos <= 10; pos++) {
+          const column = document.createElement('div');
+          column.className = 'vote-column-below';
+          
+          const votesHere = result.baseline.voteDetails.filter(v => v.position === pos);
+          
+          votesHere.forEach(vote => {
+            const block = document.createElement('div');
+            block.className = 'vote-block' + (vote.isYou ? ' yours' : '');
+            
+            const initials = getInitials(vote.displayName);
+            block.innerHTML = `<span class="initials">${initials}</span>`;
+            block.title = vote.displayName;
+            
+            column.appendChild(block);
+          });
+          
+          stacksBelow.appendChild(column);
+        }
+        viz.appendChild(stacksBelow);
+      }
+      
+      // Average marker - comparison (or only marker if baseline view)
       if (result.consentPoint !== null) {
         const avgMarker = document.createElement('div');
         avgMarker.className = 'average-marker';
+        avgMarker.style.background = isComparison ? '#4ad990' : '#666';
         const avgPercent = (result.consentPoint / 10) * 100;
         avgMarker.style.left = avgPercent + '%';
-        avgMarker.title = `Average: ${result.consentPoint.toFixed(1)}`;
+        avgMarker.title = `${isComparison ? 'Comparison' : ''} Average: ${result.consentPoint.toFixed(1)}`;
         viz.appendChild(avgMarker);
+      }
+      
+      // Baseline average marker (in comparison view)
+      if (isComparison && result.baseline.consentPoint !== null) {
+        const baselineMarker = document.createElement('div');
+        baselineMarker.className = 'average-marker';
+        baselineMarker.style.background = '#4a90d9';
+        const baselinePercent = (result.baseline.consentPoint / 10) * 100;
+        baselineMarker.style.left = baselinePercent + '%';
+        baselineMarker.title = `Baseline Average: ${result.baseline.consentPoint.toFixed(1)}`;
+        viz.appendChild(baselineMarker);
       }
       
       card.appendChild(viz);
