@@ -18,44 +18,86 @@ const DEMO_TENSIONS = [
   {
     id: 't_quality_quantity',
     name: 'Quality vs Quantity of Outputs',
-    leftAim: { label: 'Quality', description: 'Focus on excellence' },
-    rightAim: { label: 'Quantity', description: 'Focus on volume' }
+    leftAim: { 
+      label: 'Quality', 
+      description: 'Prioritize fewer, higher-quality outputs with more review and refinement' 
+    },
+    rightAim: { 
+      label: 'Quantity', 
+      description: 'Prioritize more outputs quickly, accepting varying quality levels' 
+    }
   },
   {
     id: 't_tracking_privacy',
     name: 'Data Tracking vs Privacy',
-    leftAim: { label: 'Comprehensive Tracking', description: '' },
-    rightAim: { label: 'Privacy by Design', description: '' }
+    leftAim: { 
+      label: 'Comprehensive Tracking', 
+      description: 'Collect detailed data to understand usage patterns and improve systems' 
+    },
+    rightAim: { 
+      label: 'Privacy by Design', 
+      description: 'Minimize data collection to protect individual privacy and autonomy' 
+    }
   },
   {
     id: 't_oversight_personal',
     name: 'Oversight vs Personalization',
-    leftAim: { label: 'Centralized Oversight', description: '' },
-    rightAim: { label: 'Personalization', description: '' }
+    leftAim: { 
+      label: 'Centralized Oversight', 
+      description: 'Centralized control ensures consistency, compliance, and risk management' 
+    },
+    rightAim: { 
+      label: 'Personalization', 
+      description: 'Individual teams customize AI tools to fit their specific workflows' 
+    }
   },
   {
     id: 't_outputs_experiences',
     name: 'Outputs vs Experiences',
-    leftAim: { label: 'Good AI Outputs', description: '' },
-    rightAim: { label: 'Good Workflow Experiences', description: '' }
+    leftAim: { 
+      label: 'Good AI Outputs', 
+      description: 'Focus on the quality and accuracy of what AI produces' 
+    },
+    rightAim: { 
+      label: 'Good Workflow Experiences', 
+      description: 'Focus on how people feel using AI in their daily work' 
+    }
   },
   {
     id: 't_back_front',
     name: 'Back Office vs Front Office',
-    leftAim: { label: 'Back Office', description: '' },
-    rightAim: { label: 'Front Office', description: '' }
+    leftAim: { 
+      label: 'Back Office', 
+      description: 'Apply AI to internal operations, admin, and infrastructure' 
+    },
+    rightAim: { 
+      label: 'Front Office', 
+      description: 'Apply AI to customer-facing services and external interactions' 
+    }
   },
   {
     id: 't_understanding_privacy',
     name: 'Understanding vs Privacy',
-    leftAim: { label: 'Understanding', description: '' },
-    rightAim: { label: 'Privacy', description: '' }
+    leftAim: { 
+      label: 'Understanding', 
+      description: 'Gather insights to better understand needs and improve services' 
+    },
+    rightAim: { 
+      label: 'Privacy', 
+      description: 'Protect sensitive information and limit what the organization knows' 
+    }
   },
   {
     id: 't_responsive_inclusive',
     name: 'Responsive vs Inclusive Governance',
-    leftAim: { label: 'Quick Response', description: '' },
-    rightAim: { label: 'Inclusive Process', description: '' }
+    leftAim: { 
+      label: 'Quick Response', 
+      description: 'Move fast with small groups to adapt governance quickly' 
+    },
+    rightAim: { 
+      label: 'Inclusive Process', 
+      description: 'Take time to include diverse voices in governance decisions' 
+    }
   }
 ];
 
