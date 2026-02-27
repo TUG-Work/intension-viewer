@@ -129,7 +129,8 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({
       project: {
         id: project.id,
-        name: project.name
+        name: project.name,
+        comparisonCode: project.comparison_code
       },
       round: activeRound,
       participantCount: new Set(votes.map(v => v.participant_id)).size,

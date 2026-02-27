@@ -118,6 +118,101 @@
       margin-top: 16px;
     }
     
+    /* Intro Screen */
+    .intro-screen {
+      display: flex;
+      justify-content: center;
+    }
+    
+    .intro-card {
+      background: white;
+      border-radius: 12px;
+      padding: 40px 32px;
+      max-width: 500px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .intro-card h2 {
+      margin: 0 0 16px 0;
+      font-size: 24px;
+      text-align: center;
+    }
+    
+    .intro-desc {
+      color: #555;
+      text-align: center;
+      margin: 0 0 32px 0;
+      line-height: 1.6;
+    }
+    
+    .round-info {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    
+    .round-badge {
+      display: inline-block;
+      background: #4a90d9;
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+    }
+    
+    .round-badge.comparison {
+      background: #5cb85c;
+    }
+    
+    .round-info h3 {
+      margin: 0 0 8px 0;
+      font-size: 20px;
+    }
+    
+    .round-info p {
+      margin: 0;
+      color: #555;
+      line-height: 1.5;
+    }
+    
+    .round-note {
+      background: #fff8e6;
+      border-left: 4px solid #f0ad4e;
+      padding: 16px;
+      margin-bottom: 24px;
+      border-radius: 0 8px 8px 0;
+    }
+    
+    .round-note p {
+      margin: 0;
+      font-size: 14px;
+      color: #666;
+      line-height: 1.5;
+    }
+    
+    .round-note.hidden-note {
+      display: none;
+    }
+    
+    .intro-card button {
+      width: 100%;
+      padding: 16px;
+      font-size: 18px;
+      background: #4a90d9;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    
+    .intro-card button:hover {
+      background: #3a80c9;
+    }
+    
     /* Tension display */
     .tension-card {
       background: white;
@@ -464,6 +559,26 @@
       <div class="error hidden" id="join-error"></div>
     </div>
     
+    <!-- Intro Screen -->
+    <div class="intro-screen hidden" id="intro-screen">
+      <div class="intro-card">
+        <h2 id="intro-project-name">In/Tension Voting</h2>
+        <p class="intro-desc">You'll be asked to vote on <strong id="intro-tension-count">7</strong> tensions about how your organization balances competing strategic aims.</p>
+        
+        <div class="round-info">
+          <div class="round-badge" id="round-badge">Round 1</div>
+          <h3 id="round-title">Baseline Round</h3>
+          <p id="round-desc">Vote on how these tensions <strong>are currently balanced</strong> in your organization today.</p>
+        </div>
+        
+        <div class="round-note" id="round-note">
+          <p>After this round, you'll see the results and then have the opportunity to vote in <strong>Round 2 (Comparison)</strong> on how these tensions <em>should</em> be balanced in the future.</p>
+        </div>
+        
+        <button onclick="startVoting()">Begin Voting</button>
+      </div>
+    </div>
+    
     <!-- Loading -->
     <div class="loading hidden" id="loading">
       Loading...
@@ -525,6 +640,7 @@
     
     // Elements
     const joinScreen = document.getElementById('join-screen');
+    const introScreen = document.getElementById('intro-screen');
     const loadingEl = document.getElementById('loading');
     const tensionCard = document.getElementById('tension-card');
     const submittedEl = document.getElementById('submitted');
@@ -532,6 +648,10 @@
     const joinError = document.getElementById('join-error');
     const codeInput = document.getElementById('code-input');
     const nameInput = document.getElementById('name-input');
+    
+    // Project info for intro
+    let projectName = '';
+    let projectRound = 'baseline';
     const tensionNameEl = document.getElementById('tension-name');
     const leftAimEl = document.getElementById('left-aim');
     const leftDescEl = document.getElementById('left-desc');
@@ -600,15 +720,16 @@
         tensions = sessionData.tensions;
         votes = {};
         currentIndex = 0;
+        projectName = projectData.project.name;
+        projectRound = projectData.round;
         
         // Initialize UI
         initScale();
         initProgressDots();
         
-        // Show voting screen
+        // Show intro screen
         loadingEl.classList.add('hidden');
-        tensionCard.classList.remove('hidden');
-        render();
+        showIntroScreen();
         
       } catch (err) {
         console.error('Join error:', err);
@@ -621,6 +742,39 @@
     function showJoinError(msg) {
       joinError.textContent = msg;
       joinError.classList.toggle('hidden', !msg);
+    }
+    
+    function showIntroScreen() {
+      // Update intro content based on round
+      document.getElementById('intro-project-name').textContent = projectName;
+      document.getElementById('intro-tension-count').textContent = tensions.length;
+      
+      const roundBadge = document.getElementById('round-badge');
+      const roundTitle = document.getElementById('round-title');
+      const roundDesc = document.getElementById('round-desc');
+      const roundNote = document.getElementById('round-note');
+      
+      if (projectRound === 'comparison') {
+        roundBadge.textContent = 'Round 2';
+        roundBadge.classList.add('comparison');
+        roundTitle.textContent = 'Comparison Round';
+        roundDesc.innerHTML = 'Vote on how these tensions <strong>should be balanced</strong> in your organization going forward.';
+        roundNote.classList.add('hidden-note');
+      } else {
+        roundBadge.textContent = 'Round 1';
+        roundBadge.classList.remove('comparison');
+        roundTitle.textContent = 'Baseline Round';
+        roundDesc.innerHTML = 'Vote on how these tensions <strong>are currently balanced</strong> in your organization today.';
+        roundNote.classList.remove('hidden-note');
+      }
+      
+      introScreen.classList.remove('hidden');
+    }
+    
+    function startVoting() {
+      introScreen.classList.add('hidden');
+      tensionCard.classList.remove('hidden');
+      render();
     }
     
     // Initialize scale dots
@@ -741,10 +895,17 @@
       progressEl.textContent = 'Complete';
       
       const votedCount = Object.keys(votes).length;
-      document.getElementById('submitted-summary').innerHTML = 
-        `You voted on ${votedCount} of ${tensions.length} tensions.<br><br>
-        <a href="results.html?code=${codeInput.value.toUpperCase()}&participantId=${session.participantId}" 
-           style="color: #4a90d9;">View Results →</a>`;
+      const code = codeInput.value.toUpperCase();
+      
+      let summaryHtml = `You voted on ${votedCount} of ${tensions.length} tensions.<br><br>`;
+      summaryHtml += `<a href="results.html?code=${code}&participantId=${session.participantId}" 
+           style="color: #4a90d9; font-weight: 500;">View Results →</a>`;
+      
+      document.getElementById('submitted-summary').innerHTML = summaryHtml;
+      
+      // Update header to show which round was completed
+      const roundLabel = projectRound === 'comparison' ? 'Round 2 Complete' : 'Round 1 Complete';
+      progressEl.textContent = roundLabel;
     }
     
     // Render current state
