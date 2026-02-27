@@ -34,23 +34,33 @@ async function setup() {
     )
   `;
   
-  // Participants table
-  console.log('  - participants');
+  // Global participants table (identity across projects)
+  console.log('  - participants (global)');
   await sql`
     CREATE TABLE IF NOT EXISTS participants (
       id TEXT PRIMARY KEY,
-      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      email TEXT UNIQUE,
       display_name TEXT NOT NULL,
-      email_hash TEXT,
-      color TEXT,
-      joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `;
   
-  // Add unique constraint separately (in case table already exists)
-  try {
-    await sql`CREATE UNIQUE INDEX IF NOT EXISTS participants_project_email ON participants(project_id, email_hash)`;
-  } catch (e) { /* ignore if exists */ }
+  // Project participants junction table
+  console.log('  - project_participants');
+  await sql`
+    CREATE TABLE IF NOT EXISTS project_participants (
+      id TEXT PRIMARY KEY,
+      participant_id TEXT NOT NULL REFERENCES participants(id) ON DELETE CASCADE,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      invitation_code TEXT,
+      role TEXT DEFAULT 'participant',
+      status TEXT DEFAULT 'active',
+      display_name_override TEXT,
+      joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(participant_id, project_id)
+    )
+  `;
   
   // Tensions table
   console.log('  - tensions');
@@ -70,7 +80,7 @@ async function setup() {
     )
   `;
   
-  // Votes table
+  // Votes table (references global participant)
   console.log('  - votes');
   await sql`
     CREATE TABLE IF NOT EXISTS votes (
@@ -107,7 +117,7 @@ async function setup() {
     await sql`CREATE UNIQUE INDEX IF NOT EXISTS consent_points_unique ON consent_points(tension_id, round)`;
   } catch (e) { /* ignore if exists */ }
   
-  // Voting sessions table
+  // Voting sessions table (references global participant)
   console.log('  - voting_sessions');
   await sql`
     CREATE TABLE IF NOT EXISTS voting_sessions (
@@ -133,7 +143,10 @@ async function setup() {
     await sql`CREATE INDEX IF NOT EXISTS idx_votes_participant ON votes(participant_id)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_votes_project_round ON votes(project_id, round)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_tensions_project ON tensions(project_id)`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_participants_project ON participants(project_id)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_pp_participant ON project_participants(participant_id)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_pp_project ON project_participants(project_id)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_pp_code ON project_participants(invitation_code)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_participants_email ON participants(email)`;
   } catch (e) { /* ignore if exists */ }
   
   console.log('');
