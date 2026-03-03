@@ -23,6 +23,10 @@ def render_continuum(continuum: Continuum,
     - Vote rectangles stack above (baseline) and below (comparison)
     - Consent point shown as circle on the line
     - Aim labels at ends, stacked if long
+    
+    Dynamic scaling:
+    - Below MARKER_THRESHOLD: individual rectangles with proportional spacing
+    - Above MARKER_THRESHOLD: solid bars with count labels
     """
     
     tension = continuum.tension
@@ -37,8 +41,11 @@ def render_continuum(continuum: Continuum,
     
     # Vote display
     vote_width = cell_width * 0.7
-    vote_height = 18
-    vote_gap = 3
+    base_vote_height = 18
+    base_vote_gap = 3
+    
+    # Dynamic scaling threshold
+    MARKER_THRESHOLD = 12
     
     # Colors
     colors = {
@@ -68,6 +75,28 @@ def render_continuum(continuum: Continuum,
             comparison_counts[v.value - continuum.scale_min] += 1
     
     line_y = bar_y + bar_height // 2
+    
+    # Calculate max stack sizes
+    max_baseline = max(baseline_counts) if baseline_counts else 0
+    max_comparison = max(comparison_counts) if comparison_counts else 0
+    
+    # Available height for vote stacks (above or below line)
+    available_height = line_y - 70  # Leave room for title and labels
+    
+    # Determine display mode
+    use_bar_mode = max_baseline > MARKER_THRESHOLD or max_comparison > MARKER_THRESHOLD
+    
+    # Calculate dynamic spacing for marker mode
+    def get_marker_layout(max_count):
+        if max_count == 0:
+            return base_vote_height, base_vote_gap
+        ideal_spacing = available_height / max_count
+        vote_height = min(base_vote_height, max(8, ideal_spacing * 0.8))
+        vote_gap = max(2, ideal_spacing - vote_height)
+        return vote_height, vote_gap
+    
+    baseline_vote_height, baseline_vote_gap = get_marker_layout(max_baseline)
+    comparison_vote_height, comparison_vote_gap = get_marker_layout(max_comparison)
     
     # Start SVG
     svg = f'''<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">
@@ -105,25 +134,55 @@ def render_continuum(continuum: Continuum,
 '''
     
     # Baseline vote rectangles (above line)
-    for pos, count in enumerate(baseline_counts):
-        if count == 0:
-            continue
-        cell_center = margin_x + (pos * cell_width) + (cell_width / 2)
-        x = cell_center - (vote_width / 2)
-        for i in range(count):
-            y = line_y - 8 - (vote_height + vote_gap) * (i + 1)
-            svg += f'  <rect x="{x:.1f}" y="{y:.1f}" width="{vote_width:.1f}" height="{vote_height}" fill="{colors["baseline_vote"]}" rx="2"/>\n'
-    
-    # Comparison vote rectangles (below line)
-    if show_comparison and comparison_votes:
-        for pos, count in enumerate(comparison_counts):
+    if use_bar_mode and max_baseline > 0:
+        # Bar mode: proportional solid bars with count labels
+        for pos, count in enumerate(baseline_counts):
+            if count == 0:
+                continue
+            cell_center = margin_x + (pos * cell_width) + (cell_width / 2)
+            x = cell_center - (vote_width / 2)
+            # Height proportional to count
+            bar_h = (count / max_baseline) * available_height
+            y = line_y - 8 - bar_h
+            svg += f'  <rect x="{x:.1f}" y="{y:.1f}" width="{vote_width:.1f}" height="{bar_h:.1f}" fill="{colors["baseline_vote"]}" rx="2"/>\n'
+            # Count label above bar
+            svg += f'  <text x="{cell_center:.1f}" y="{y - 6:.1f}" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="600" fill="{colors["text_light"]}">{count}</text>\n'
+    else:
+        # Marker mode: individual rectangles with dynamic spacing
+        for pos, count in enumerate(baseline_counts):
             if count == 0:
                 continue
             cell_center = margin_x + (pos * cell_width) + (cell_width / 2)
             x = cell_center - (vote_width / 2)
             for i in range(count):
-                y = line_y + 8 + vote_gap + (vote_height + vote_gap) * i
-                svg += f'  <rect x="{x:.1f}" y="{y:.1f}" width="{vote_width:.1f}" height="{vote_height}" fill="{colors["comparison_vote"]}" rx="2"/>\n'
+                y = line_y - 8 - (baseline_vote_height + baseline_vote_gap) * (i + 1)
+                svg += f'  <rect x="{x:.1f}" y="{y:.1f}" width="{vote_width:.1f}" height="{baseline_vote_height:.1f}" fill="{colors["baseline_vote"]}" rx="2"/>\n'
+    
+    # Comparison vote rectangles (below line)
+    if show_comparison and comparison_votes:
+        if use_bar_mode and max_comparison > 0:
+            # Bar mode: proportional solid bars with count labels
+            for pos, count in enumerate(comparison_counts):
+                if count == 0:
+                    continue
+                cell_center = margin_x + (pos * cell_width) + (cell_width / 2)
+                x = cell_center - (vote_width / 2)
+                # Height proportional to count
+                bar_h = (count / max_comparison) * available_height
+                y = line_y + 8
+                svg += f'  <rect x="{x:.1f}" y="{y:.1f}" width="{vote_width:.1f}" height="{bar_h:.1f}" fill="{colors["comparison_vote"]}" rx="2"/>\n'
+                # Count label below bar
+                svg += f'  <text x="{cell_center:.1f}" y="{y + bar_h + 14:.1f}" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="600" fill="{colors["text_light"]}">{count}</text>\n'
+        else:
+            # Marker mode: individual rectangles with dynamic spacing
+            for pos, count in enumerate(comparison_counts):
+                if count == 0:
+                    continue
+                cell_center = margin_x + (pos * cell_width) + (cell_width / 2)
+                x = cell_center - (vote_width / 2)
+                for i in range(count):
+                    y = line_y + 8 + comparison_vote_gap + (comparison_vote_height + comparison_vote_gap) * i
+                    svg += f'  <rect x="{x:.1f}" y="{y:.1f}" width="{vote_width:.1f}" height="{comparison_vote_height:.1f}" fill="{colors["comparison_vote"]}" rx="2"/>\n'
     
     # Baseline consent point (circle on line)
     baseline_cp = tension.get_consent_point(VotingRound.BASELINE)
