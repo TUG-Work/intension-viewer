@@ -13,12 +13,12 @@
       font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
       margin: 0;
       padding: 0;
-      background: #f0f0f0;
-      color: #333;
+      background: #f3f3f3;
+      color: #1b1d18;
     }
     
     .header {
-      background: #333;
+      background: #1b1d18;
       color: white;
       padding: 16px 24px;
       display: flex;
@@ -107,7 +107,7 @@
       border-radius: 2px;
     }
     
-    .legend-swatch.baseline { background: #a8d4f0; }
+    .legend-swatch.baseline { background: #9acfef; }
     .legend-swatch.comparison { background: #90d4a8; }
     .legend-swatch.yours { background: #4a90d9; border: 2px solid #2a70b9; }
     .legend-swatch.yours-comparison { background: #4ad990; border: 2px solid #2ab970; }
@@ -209,7 +209,7 @@
       height: 18px;
       margin-bottom: 3px;
       border-radius: 3px;
-      background: #a8d4f0;
+      background: #9acfef;
       position: relative;
     }
     
@@ -570,7 +570,7 @@
         statsHtml = `
           <div style="font-size: 12px;">
             <span style="color: #4ad990;">▲</span> Comparison: ${result.voteCount} votes (avg ${result.average?.toFixed(1) || '—'})<br>
-            <span style="color: #a8d4f0;">▼</span> Baseline: ${result.baseline.voteCount} votes (avg ${result.baseline.average?.toFixed(1) || '—'})
+            <span style="color: #9acfef;">▼</span> Baseline: ${result.baseline.voteCount} votes (avg ${result.baseline.average?.toFixed(1) || '—'})
           </div>
         `;
       } else {

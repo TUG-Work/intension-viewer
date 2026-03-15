@@ -1,0 +1,27 @@
+/* TUG Brand Colors - Feb 2024 Brand Book */
+:root {
+  /* Primary */
+  --eclipse: #1b1d18;
+  --eclipse-medium: #3d4a41;
+  --eclipse-light: #8c9b98;
+  --bg-light: #f3f3f3;
+  --breathe: #e71e10;
+  
+  /* PASS Process */
+  --us: #633162;
+  --us-medium: #7c3f7a;
+  --us-light: #a177a0;
+  --them: #327492;
+  --them-medium: #469dc6;
+  --them-light: #9acfef;
+  
+  /* Secondary */
+  --tug-green: #a6b228;
+  --tug-yellow: #d7b728;
+  --tug-orange: #e87b26;
+  --tug-warm-orange: #d25c34;
+  --tug-plum: #5b2233;
+  --tug-pink: #bd71a0;
+  --tug-lavender: #8d7dbc;
+  --tug-blue: #3b88de;
+}
