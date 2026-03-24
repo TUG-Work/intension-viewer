@@ -213,3 +213,6 @@ When building a feature:
 5. Ask: What domain objects? What API? What UI?
 
 Welcome aboard!
+
+
+Minor update for learning Git workflow.
